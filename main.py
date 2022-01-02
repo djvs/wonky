@@ -9,7 +9,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 import gi, inspect
 import json 
-import time
 import subprocess as sp
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GtkLayerShell
@@ -63,7 +62,6 @@ window.add(outerContainer)
 
 def render_container(cnt):
     config = json.load(open(configJsonPath))
-
     for c in cnt.get_children():
       cnt.remove(c)
 
@@ -83,17 +81,11 @@ def render_container(cnt):
                     labelCtx.add_class(w['class'])
                 cnt.add(label)
 
+render_container(outerContainer)
 
 window.show_all()
 window.connect('destroy', Gtk.main_quit)
-#Gtk.main()
-
-while True:
-    render_container(outerContainer)
-    time.sleep(500)
-    while Gtk.events_pending():
-        Gtk.main_iteration()
-
+Gtk.main()
 
 #print(dir(label))
 
