@@ -7,3 +7,5 @@ Basically just forks off subprocesses, grabs their output, dumps them into Pango
 Edit `config.json` for output control.  `style.css` for GTK-compatible "CSS".  Edit the code directly for anything else.  See the code for config.json markup, although the stuff in config.json pretty much covers it currently.
 
 Example sub-scripts are just cobbled together stuff from the past.  Use whatever you want as subprocesses.
+
+![Screenshot](/screenshot.png)
