@@ -76,6 +76,10 @@ def render_container():
             labelCnt.add(label)
             label.set_valign(Gtk.Align.START)
             label.set_halign(Gtk.Align.START)
+            if "maxWidthChars" in w:
+                print("Setting max width to", w['maxWidthChars'])
+                label.set_line_wrap(True)
+                label.set_max_width_chars(w['maxWidthChars'])
             if "class" in w:
                 labelCtx = label.get_style_context()
                 labelCtx.add_class(w['class'])
@@ -101,10 +105,10 @@ def render_container():
                 try:
                     cmd = map(lambda x: x.replace("$HOME", homeDir), w['cmd'])
                     result = sp.run(cmd, capture_output=True)
-                    cmdOutput = result.stdout.decode('utf-8').strip()
+                    labelText = result.stdout.decode('utf-8').strip()
                     if "escape" in w:
-                        labelText = GLib.markup_escape_text(cmdOutput)
-                    labelText = w['fmt'].replace('$OUTPUT', cmdOutput)
+                        labelText = GLib.markup_escape_text(labelText)
+                    labelText = w['fmt'].replace('$OUTPUT', labelText)
                     label.set_markup(labelText)
                 except:
                     labelText = "Command #" + si + " failed: " + str(w['cmd'])
