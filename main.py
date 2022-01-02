@@ -1,7 +1,6 @@
 #!/usr/bin/env python3 
 
 import gi, json, time, subprocess as sp
-#import asyncio, threading
 gi.require_version('Gtk', '3.0')
 gi.require_version('GtkLayerShell', '0.1')
 from gi.repository import Gtk, GtkLayerShell
@@ -17,6 +16,8 @@ configDir = homeDir + "/.config/wonky/"
 configJsonPath = str(configDir) + "config.json" 
 configCssPath = str(configDir) + "style.css"
 
+config = json.load(open(configJsonPath))
+
 css_provider = Gtk.CssProvider()
 css_provider.load_from_path(configCssPath)
 
@@ -25,11 +26,13 @@ screen = Gdk.Screen.get_default()
 gtkCtx.add_provider_for_screen(screen, css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
 
 window = Gtk.Window()
-#window.set_size_request(480,640)
 
 GtkLayerShell.init_for_window(window)
-# GtkLayerShell.auto_exclusive_zone_enable(window)
-GtkLayerShell.set_layer(window,    1)
+
+if "exclusive" in config:
+    GtkLayerShell.auto_exclusive_zone_enable(window) # Optional 
+
+GtkLayerShell.set_layer(window, 1)
 
 GtkLayerShell.set_margin(window, GtkLayerShell.Edge.TOP, 5)
 GtkLayerShell.set_margin(window, GtkLayerShell.Edge.RIGHT, 5)
@@ -37,12 +40,10 @@ GtkLayerShell.set_margin(window, GtkLayerShell.Edge.BOTTOM, 5)
 GtkLayerShell.set_margin(window, GtkLayerShell.Edge.LEFT, 5)
 GtkLayerShell.set_anchor(window, GtkLayerShell.Edge.TOP, 1)
 GtkLayerShell.set_anchor(window, GtkLayerShell.Edge.LEFT, 1)
+GtkLayerShell.set_anchor(window, GtkLayerShell.Edge.BOTTOM, 1)
 
 outerContainer = Gtk.Box(spacing=6,orientation=Gtk.Orientation.VERTICAL)
 window.add(outerContainer)
-
-# initial config load
-config = json.load(open(configJsonPath))
 
 state = {
     "widgets": {},
@@ -66,7 +67,7 @@ def render_container():
             label = state["widgets"][si]['widget']
             timeDiff = currentTime - ref["lastRun"]
             if "interval" in w and "lastRun" in ref and timeDiff < w["interval"]:
-                print("skipping", currentTime, timeDiff, w)
+                #print("skipping", currentTime, timeDiff, w)
                 continue
         else:
             initializing = True
@@ -131,3 +132,4 @@ Gtk.main()
 #button1.connect("clicked", on_button1_clicked)
 #outerContainer.pack_start(button1, True, True, 0)
 
+# ^ TODO - launcher buttons 
