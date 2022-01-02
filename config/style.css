@@ -1,0 +1,24 @@
+window {
+  background-color: rgba(50,50,50,0);
+  color:white;
+}
+
+window > * {
+  padding:0.5em;
+}
+
+window > box > box {
+  font-family:Inconsolata for Powerline;
+  background-color: rgba(40,40,40,0.9);
+  padding:0.5em;
+}
+
+label.weather span{
+  font-family:Symbola;
+  font-size: 2em;
+}
+
+label.top{
+  font-family:Inconsolata for Powerline;
+}
+

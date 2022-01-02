@@ -1,7 +1,7 @@
-import gi 
-import json 
+#!/usr/bin/env python3 
+
+import gi, json, time, subprocess as sp
 #import asyncio, threading
-import subprocess as sp
 gi.require_version('Gtk', '3.0')
 gi.require_version('GtkLayerShell', '0.1')
 from gi.repository import Gtk, GtkLayerShell
@@ -12,7 +12,8 @@ from pathlib import Path
 
 print("Initializing...")
 
-configDir = str(Path.home()) + "/.config/wonky/"
+homeDir = str(Path.home())
+configDir = homeDir + "/.config/wonky/"
 configJsonPath = str(configDir) + "config.json" 
 configCssPath = str(configDir) + "style.css"
 
@@ -37,30 +38,53 @@ GtkLayerShell.set_margin(window, GtkLayerShell.Edge.LEFT, 5)
 GtkLayerShell.set_anchor(window, GtkLayerShell.Edge.TOP, 1)
 GtkLayerShell.set_anchor(window, GtkLayerShell.Edge.LEFT, 1)
 
-outerContainer = Gtk.VBox(spacing=6)
+outerContainer = Gtk.Box(spacing=6,orientation=Gtk.Orientation.VERTICAL)
 window.add(outerContainer)
 
 # initial config load
 config = json.load(open(configJsonPath))
 
-widgetref = {}
+state = {
+    "widgets": {},
+}
 
 def render_container():
     #print("Loop...")
     #print(dir(outerContainer))
-    config = json.load(open(configJsonPath))
+    try:
+        config = json.load(open(configJsonPath))
+    except:
+        print("config.json is malformed!")
+        return True
 
     for i, w in enumerate(config['widgets']):
-        si = str(i)
-        if si in widgetref:
-            label = widgetref[si]
+        si = w['id']
+        currentTime = time.time()
+        if si in state['widgets']:
+            initializing = False
+            ref = state["widgets"][si] 
+            label = state["widgets"][si]['widget']
+            timeDiff = currentTime - ref["lastRun"]
+            if "interval" in w and "lastRun" in ref and timeDiff < w["interval"]:
+                print("skipping", currentTime, timeDiff, w)
+                continue
         else:
+            initializing = True
+            labelCnt = Gtk.Box()
             label = Gtk.Label()
+            labelCnt.add(label)
             label.set_valign(Gtk.Align.START)
             label.set_halign(Gtk.Align.START)
             if "class" in w:
                 labelCtx = label.get_style_context()
                 labelCtx.add_class(w['class'])
+            state["widgets"][si] = { "widget": label }
+            ref = state["widgets"][si]
+            ref['cnt'] = labelCnt
+            print("Initializing widget...")
+
+        ref['lastRun'] = currentTime
+        
 
         # assign text
         match w['type']:
@@ -74,24 +98,27 @@ def render_container():
 
             case 'sh':
                 try:
-                    result = sp.run(w['cmd'], capture_output=True)
-                    labelText = w['fmt'].replace('$OUTPUT', result.stdout.decode('utf-8'))
-                    label.set_markup(labelText.strip())
+                    cmd = map(lambda x: x.replace("$HOME", homeDir), w['cmd'])
+                    result = sp.run(cmd, capture_output=True)
+                    cmdOutput = result.stdout.decode('utf-8').strip()
+                    if "escape" in w:
+                        labelText = GLib.markup_escape_text(cmdOutput)
+                    labelText = w['fmt'].replace('$OUTPUT', cmdOutput)
+                    label.set_markup(labelText)
                 except:
                     labelText = "Command #" + si + " failed: " + str(w['cmd'])
                     label.set_markup(labelText)
 
         # add if not previously initialized
-        if not si in widgetref:
+        if initializing:
             print("Initializing widget #", si)
-            outerContainer.add(label)
-            widgetref[si] = label
+            outerContainer.add(labelCnt)
     return True
 
 window.connect('destroy', Gtk.main_quit)
 
 render_container()
-GLib.timeout_add(config['interval'], render_container)
+GLib.timeout_add((config['interval'] or 2) * 1000, render_container)
 window.show_all()
 Gtk.main()
 

@@ -1,0 +1,55 @@
+{
+  "interval": 1000,
+  "widgets": [
+    {
+      "id": "1",
+      "type": "text",
+      "text": "<b>:)</b>"
+    },
+    {
+      "id": "2",
+      "type": "sh",
+      "cmd": ["uname","-a"],
+      "fmt": "<b>system</b>\n$OUTPUT",
+      "class": "uname"
+    },
+    {
+      "id": "3",
+      "type": "sh",
+      "cmd": ["uptime"],
+      "fmt": "<b>uptime</b>\n$OUTPUT",
+      "class": "uptime"
+    },
+    {
+      "id": "4",
+      "type": "sh",
+      "cmd": ["cat","/tmp/weather_wonky"],
+      "fmt": "<b>weather</b>\n$OUTPUT",
+      "class": "weather"
+    },
+    {
+      "id": "5",
+      "type": "sh",
+      "cmd": ["$HOME/.config/wonky/top.sh"],
+      "fmt": "<b>processes</b>\n$OUTPUT",
+      "class": "top"
+    },
+    {
+      "id": "6",
+      "type": "sh",
+      "cmd": ["$HOME/.config/wonky/dfh.sh"],
+      "fmt": "<b>df</b>\n$OUTPUT",
+      "class": "df",
+      "interval": 20000
+    },
+    {
+      "id": "7",
+      "type": "sh",
+      "cmd": ["fortune"],
+      "fmt": "<b>fortune</b>\n$OUTPUT",
+      "class": "fortune",
+      "interval": 100,
+      "escape": true
+    }
+  ]
+}
