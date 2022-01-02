@@ -8,4 +8,6 @@ Edit `config.json` for output control.  `style.css` for GTK-compatible "CSS".  E
 
 Example sub-scripts are just cobbled together stuff from the past.  Use whatever you want as subprocesses.
 
+PRs welcome!  Just don't break my config please!
+
 ![Screenshot](/screenshot.png)
