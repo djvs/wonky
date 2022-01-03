@@ -1,5 +1,5 @@
 {
-  "interval": 1,
+  "interval": 0.3,
   "widgets": [
     {
       "id": "1",
@@ -33,11 +33,11 @@
     },
     {
       "id": "5",
-      "type": "sh",
-      "cmd": "$HOME/.config/wonky/top.sh",
-      "fmt": "<b>processes</b>\n$OUTPUT",
-      "class": "top",
-      "interval": 0.5
+      "type": "top",
+      "lines": 20,
+      "columns": 91,
+      "fmt": "<b>top</b>\n$OUTPUT",
+      "interval": 1
     },
     {
       "id": "6",
@@ -54,8 +54,8 @@
       "cmd": "fortune",
       "fmt": "<b>fortune</b>\n$OUTPUT",
       "class": "fortune",
-      "interval": 20,
-      "escape": true
+      "escape": true,
+      "interval": 20
     },
     {
       "id": "8",
