@@ -53,6 +53,7 @@ for w in config['widgets']:
         runtop = True
         topcfg = w
         env['LINES'] = str(w['lines'])
+        env['COLUMNS'] = str(w['columns'])
         print(str(w['lines']))
 
 state = {
@@ -94,7 +95,7 @@ def render_container():
             ref = state["widgets"][si] 
             label = state["widgets"][si]['widget']
             timeDiff = currentTime - ref["lastRun"]
-            if w['type'] != 'top' and "interval" in w and "lastRun" in ref and timeDiff < w["interval"]:
+            if w['type'] != 'top' and w['type'] != 'text' and w['type'] != 'spacer' and ("interval" in w and "lastRun" in ref and timeDiff < w["interval"]):
                 #print("skipping", currentTime, timeDiff, w)
                 continue
         else:
