@@ -34,13 +34,14 @@ if "exclusive" in config:
 
 GtkLayerShell.set_layer(window, 1)
 
-GtkLayerShell.set_margin(window, GtkLayerShell.Edge.TOP, 5)
-GtkLayerShell.set_margin(window, GtkLayerShell.Edge.RIGHT, 5)
-GtkLayerShell.set_margin(window, GtkLayerShell.Edge.BOTTOM, 5)
-GtkLayerShell.set_margin(window, GtkLayerShell.Edge.LEFT, 5)
-GtkLayerShell.set_anchor(window, GtkLayerShell.Edge.TOP, 1)
-GtkLayerShell.set_anchor(window, GtkLayerShell.Edge.LEFT, 1)
-GtkLayerShell.set_anchor(window, GtkLayerShell.Edge.BOTTOM, 1)
+GtkLayerShell.set_margin(window, GtkLayerShell.Edge.TOP, config['window']['margin']['top'] or 5)
+GtkLayerShell.set_margin(window, GtkLayerShell.Edge.RIGHT, config['window']['margin']['right'] or 1000)
+GtkLayerShell.set_margin(window, GtkLayerShell.Edge.BOTTOM, config['window']['margin']['bottom'] or 5)
+GtkLayerShell.set_margin(window, GtkLayerShell.Edge.LEFT, config['window']['margin']['left'] or 5)
+if config['window']['anchor']['top']: GtkLayerShell.set_anchor(window, GtkLayerShell.Edge.TOP, 1)
+if config['window']['anchor']['right']: GtkLayerShell.set_anchor(window, GtkLayerShell.Edge.RIGHT, 1)
+if config['window']['anchor']['bottom']: GtkLayerShell.set_anchor(window, GtkLayerShell.Edge.BOTTOM, 1)
+if config['window']['anchor']['left']: GtkLayerShell.set_anchor(window, GtkLayerShell.Edge.LEFT, 1)
 
 outerContainer = Gtk.Box(spacing=6,orientation=Gtk.Orientation.VERTICAL)
 window.add(outerContainer)
@@ -52,14 +53,26 @@ for w in config['widgets']:
     if w['type'] == 'top':
         runtop = True
         topcfg = w
-        env['LINES'] = str(w['lines'])
-        env['COLUMNS'] = str(w['columns'])
+        if "lines" in w:
+            env['LINES'] = str(w['lines'])
+        if "columns" in w:
+            env['COLUMNS'] = str(w['columns'])
         print(str(w['lines']))
 
 state = {
     "widgets": {},
-    "topOutput": ""
+    "topOutput": "",
+    "topPause": False
 }
+
+def pausetop(self):
+    if state['topPause']:
+        state['topPause'] = False
+        state['topPauseButton'].set_label('pause')
+    else:
+        state['topPause'] = True
+        state['topPauseButton'].set_label('unpause')
+
 def capture_top():
     cmd = ["top","-b", "-d", str(topcfg['interval']), "-w"]
 
@@ -91,30 +104,51 @@ def render_container():
         si = w['id']
         currentTime = time.time()
         if si in state['widgets']:
+            # Lookup routine
             initializing = False
             ref = state["widgets"][si] 
             label = state["widgets"][si]['widget']
-            timeDiff = currentTime - ref["lastRun"]
-            if w['type'] != 'top' and w['type'] != 'text' and w['type'] != 'spacer' and ("interval" in w and "lastRun" in ref and timeDiff < w["interval"]):
-                #print("skipping", currentTime, timeDiff, w)
+            # Don't bother trying to update text or spacer, requires restart to update
+            if w['type'] in ['text','spacer']:
                 continue
+            # skip widgets not due for update
+            if 'lastRun' in ref and 'interval' in w:
+                timeDiff = currentTime - ref["lastRun"]
+                if timeDiff < w["interval"]:
+                    continue
         else:
+            # Initialization routine
             initializing = True
-            labelCnt = Gtk.Box()
+            labelCnt = Gtk.Box(spacing=0, orientation=Gtk.Orientation.HORIZONTAL)
             label = Gtk.Label()
             labelCnt.add(label)
             label.set_valign(Gtk.Align.START)
             label.set_halign(Gtk.Align.START)
+
+            # Assign max width if specified
             if "maxWidthChars" in w:
                 print("Setting max width to", w['maxWidthChars'])
                 label.set_line_wrap(True)
                 label.set_max_width_chars(w['maxWidthChars'])
+
+            # Assign a css class if specified
             if "class" in w:
                 labelCtx = label.get_style_context()
                 labelCtx.add_class(w['class'])
+
             state["widgets"][si] = { "widget": label }
             ref = state["widgets"][si]
             ref['cnt'] = labelCnt
+
+            if w['type'] == 'top':
+                # Make a fancy top pause button for top widgets
+                boxCnt = Gtk.Box(spacing=0, orientation=Gtk.Orientation.VERTICAL)
+                labelCnt.pack_end(boxCnt, False, False, 0)
+                state['topPauseButton'] = Gtk.Button(label="pause")
+                state['topPauseButton'].connect("clicked", pausetop)
+                boxCnt.pack_start(state['topPauseButton'], False, False, 0)
+
+
             print("Initializing widget...")
 
         ref['lastRun'] = currentTime
@@ -131,9 +165,10 @@ def render_container():
                 label.set_markup(labelText)
 
             case 'top':
-                labelText = GLib.markup_escape_text(str(state['topOutput']))
-                labelText = w['fmt'].replace('$OUTPUT', labelText)
-                label.set_markup(labelText)
+                if not state['topPause']:
+                    labelText = GLib.markup_escape_text(str(state['topOutput']))
+                    labelText = w['fmt'].replace('$OUTPUT', labelText)
+                    label.set_markup(labelText)
 
             case 'sh':
                 try:

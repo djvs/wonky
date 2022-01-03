@@ -1,5 +1,19 @@
 {
   "interval": 0.3,
+  "window":{
+    "margin":{
+      "top": 5,
+      "right": 1300,
+      "bottom": 5,
+      "left": 5
+    },
+    "anchor":{
+      "top": true,
+      "right": true,
+      "bottom": true,
+      "left": true
+    }
+  },
   "widgets": [
     {
       "id": "1",
