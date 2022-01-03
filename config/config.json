@@ -1,55 +1,72 @@
 {
-  "interval": 1000,
+  "interval": 1,
   "widgets": [
     {
       "id": "1",
       "type": "text",
-      "text": "<b>:)</b>"
+      "text": "<b><i>:) wonky :)</i></b>",
+      "interval": 100
     },
     {
       "id": "2",
       "type": "sh",
-      "cmd": ["uname","-a"],
+      "cmd": "uname -a",
       "fmt": "<b>system</b>\n$OUTPUT",
-      "class": "uname"
+      "class": "uname",
+      "interval": 600
     },
     {
       "id": "3",
       "type": "sh",
-      "cmd": ["uptime"],
+      "cmd": "uptime",
       "fmt": "<b>uptime</b>\n$OUTPUT",
-      "class": "uptime"
+      "class": "uptime",
+      "interval": 1
     },
     {
       "id": "4",
       "type": "sh",
-      "cmd": ["cat","/tmp/weather_wonky"],
+      "cmd": "$HOME/.config/wonky/weather_wonky.rb",
       "fmt": "<b>weather</b>\n$OUTPUT",
-      "class": "weather"
+      "class": "weather",
+      "interval": 600
     },
     {
       "id": "5",
       "type": "sh",
-      "cmd": ["$HOME/.config/wonky/top.sh"],
+      "cmd": "$HOME/.config/wonky/top.sh",
       "fmt": "<b>processes</b>\n$OUTPUT",
-      "class": "top"
+      "class": "top",
+      "interval": 0.5
     },
     {
       "id": "6",
       "type": "sh",
-      "cmd": ["$HOME/.config/wonky/dfh.sh"],
+      "cmd": "$HOME/.config/wonky/dfh.sh",
       "fmt": "<b>df</b>\n$OUTPUT",
       "class": "df",
-      "interval": 20000
+      "interval": 20
     },
     {
       "id": "7",
+      "maxWidthChars": 90,
       "type": "sh",
-      "cmd": ["fortune"],
+      "cmd": "fortune",
       "fmt": "<b>fortune</b>\n$OUTPUT",
       "class": "fortune",
-      "interval": 100,
+      "interval": 20,
       "escape": true
+    },
+    {
+      "id": "8",
+      "type": "text",
+      "text": "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"
     }
+  ],
+  "launchers": [
+    "firefox",
+    "thunderbird",
+    "tabbed -r 2 -c st -w ''",
+    "alacritty"
   ]
 }

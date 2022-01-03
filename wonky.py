@@ -103,9 +103,9 @@ def render_container():
 
             case 'sh':
                 try:
-                    cmd = map(lambda x: x.replace("$HOME", homeDir), w['cmd'])
-                    result = sp.run(cmd, capture_output=True)
-                    labelText = result.stdout.decode('utf-8').strip()
+                    cmd = w["cmd"].replace("$HOME", homeDir)
+                    result = sp.Popen(cmd, shell=True, stdout=sp.PIPE).communicate()[0]
+                    labelText = result.decode('utf-8').strip()
                     if "escape" in w:
                         labelText = GLib.markup_escape_text(labelText)
                     labelText = w['fmt'].replace('$OUTPUT', labelText)
