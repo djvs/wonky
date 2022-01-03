@@ -20,13 +20,14 @@
       "type": "launchers",
       "minPerLine": 7,
       "maxPerLine": 7,
-      "launchers": {
-        "firefox": "firefox",
-        "thunderbird": "thunderbird", 
-        "tabbed-st": ["tabbed","-r","2","-c","st","-w","''"],
-        "wterm": "wterm",
-        "alacritty": "alacritty"
-      },
+      "launchers": [
+        {"label": "firefox", "cmd": "firefox" },
+        {"label": "thunderbird", "cmd": "thunderbird"},
+        {"label": "tabbed-st", "cmd": ["tabbed","-r","2","-c","st","-w","''"]},
+        {"label": "wterm", "cmd": "wterm"},
+        {"label": "alacritty", "cmd": "alacritty"},
+        {"label": "rofi", "cmd":["rofi","-combi-modi","drun,window,run","-modi","run,drun,window,combi","-columns","2","-show","combi","-show-icons","-drun-icon-theme","Papirus"]}
+      ],
       "class": "launchers"
     },
     {

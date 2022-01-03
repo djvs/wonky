@@ -182,9 +182,10 @@ def render_container():
                 buttonsCnt.set_min_children_per_line(w['maxPerLine'] if 'maxPerLine' in w else 8)
                 buttonsCnt.set_selection_mode(Gtk.SelectionMode.NONE)
                 widgetCnt.add(buttonsCnt)
-                for i, k in enumerate(w['launchers']):
+                for l in w['launchers']:
+                    k = l['label']
                     state['launcherButtons'][k] = getButton(k)
-                    state['launcherButtons'][k].connect("clicked", processForker(w['launchers'][k]) )
+                    state['launcherButtons'][k].connect("clicked", processForker(l['cmd']))
                     buttonsCnt.insert(state['launcherButtons'][k], 1)
 
             case 'sh':
