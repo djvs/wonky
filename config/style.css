@@ -13,6 +13,10 @@ window > box > box {
   padding:0.5em;
 }
 
+flowbox{
+  background-color:rgba(0,0,0,0);
+}
+
 label.weather span{
   font-family:Symbola;
   font-size: 2em;
@@ -24,5 +28,9 @@ label.top{
 
 button{
   padding:0 1em;
-  background-color: red;
+  background: #666;
+  color:white;
+  outline: 0px;
+  border:0px;
+  margin-right:0.25em;
 }

@@ -3,7 +3,7 @@
   "window":{
     "margin":{
       "top": 5,
-      "right": 1300,
+      "right": 1200,
       "bottom": 5,
       "left": 5
     },
@@ -15,6 +15,20 @@
     }
   },
   "widgets": [
+    {
+      "id": "0",
+      "type": "launchers",
+      "minPerLine": 7,
+      "maxPerLine": 7,
+      "launchers": {
+        "firefox": "firefox",
+        "thunderbird": "thunderbird", 
+        "tabbed-st": ["tabbed","-r","2","-c","st","-w","''"],
+        "wterm": "wterm",
+        "alacritty": "alacritty"
+      },
+      "class": "launchers"
+    },
     {
       "id": "1",
       "type": "text",
@@ -43,15 +57,14 @@
       "cmd": "$HOME/.config/wonky/weather_wonky.rb",
       "fmt": "<b>weather</b>\n$OUTPUT",
       "class": "weather",
-      "interval": 600
+      "interval": 5
     },
     {
       "id": "5",
       "type": "top",
-      "lines": 20,
-      "columns": 91,
+      "lines": 35,
       "fmt": "<b>top</b>\n$OUTPUT",
-      "interval": 1
+      "interval": 2
     },
     {
       "id": "6",
@@ -70,17 +83,7 @@
       "class": "fortune",
       "escape": true,
       "interval": 20
-    },
-    {
-      "id": "8",
-      "type": "text",
-      "text": "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n"
     }
-  ],
-  "launchers": [
-    "firefox",
-    "thunderbird",
-    "tabbed -r 2 -c st -w ''",
-    "alacritty"
+    
   ]
 }

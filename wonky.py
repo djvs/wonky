@@ -57,12 +57,12 @@ for w in config['widgets']:
             env['LINES'] = str(w['lines'])
         if "columns" in w:
             env['COLUMNS'] = str(w['columns'])
-        print(str(w['lines']))
 
 state = {
     "widgets": {},
     "topOutput": "",
-    "topPause": False
+    "topPause": False,
+    "launcherButtons": {}
 }
 
 def pausetop(self):
@@ -90,10 +90,19 @@ if runtop:
     thr = threading.Thread(target=capture_top)
     thr.start()
 
+def getButton(label):
+    b = Gtk.Button(label=label)
+    b.set_relief(Gtk.ReliefStyle.NONE)
+    return b
+
+# closure generator for launcher button signal handlers
+def processForker(cmd):
+    def signalHandler(event):
+        sp.Popen(cmd)
+    return signalHandler
 
 def render_container():
     #print("Loop...")
-    #print(dir(outerContainer))
     try:
         config = json.load(open(configJsonPath))
     except:
@@ -109,7 +118,7 @@ def render_container():
             ref = state["widgets"][si] 
             label = state["widgets"][si]['widget']
             # Don't bother trying to update text or spacer, requires restart to update
-            if w['type'] in ['text','spacer']:
+            if w['type'] in ['text','spacer','launchers']:
                 continue
             # skip widgets not due for update
             if 'lastRun' in ref and 'interval' in w:
@@ -119,15 +128,14 @@ def render_container():
         else:
             # Initialization routine
             initializing = True
-            labelCnt = Gtk.Box(spacing=0, orientation=Gtk.Orientation.HORIZONTAL)
+            widgetCnt = Gtk.Box(spacing=0, orientation=Gtk.Orientation.HORIZONTAL)
             label = Gtk.Label()
-            labelCnt.add(label)
+            widgetCnt.add(label)
             label.set_valign(Gtk.Align.START)
             label.set_halign(Gtk.Align.START)
 
             # Assign max width if specified
             if "maxWidthChars" in w:
-                print("Setting max width to", w['maxWidthChars'])
                 label.set_line_wrap(True)
                 label.set_max_width_chars(w['maxWidthChars'])
 
@@ -138,21 +146,19 @@ def render_container():
 
             state["widgets"][si] = { "widget": label }
             ref = state["widgets"][si]
-            ref['cnt'] = labelCnt
+            ref['cnt'] = widgetCnt
 
             if w['type'] == 'top':
                 # Make a fancy top pause button for top widgets
                 boxCnt = Gtk.Box(spacing=0, orientation=Gtk.Orientation.VERTICAL)
-                labelCnt.pack_end(boxCnt, False, False, 0)
-                state['topPauseButton'] = Gtk.Button(label="pause")
+                widgetCnt.pack_end(boxCnt, False, False, 0)
+                state['topPauseButton'] = getButton("pause")
                 state['topPauseButton'].connect("clicked", pausetop)
                 boxCnt.pack_start(state['topPauseButton'], False, False, 0)
-
 
             print("Initializing widget...")
 
         ref['lastRun'] = currentTime
-        
 
         # assign text
         match w['type']:
@@ -170,6 +176,17 @@ def render_container():
                     labelText = w['fmt'].replace('$OUTPUT', labelText)
                     label.set_markup(labelText)
 
+            case 'launchers':
+                buttonsCnt = Gtk.FlowBox()
+                buttonsCnt.set_min_children_per_line(w['minPerLine'] if 'minPerLine' in w else 6)
+                buttonsCnt.set_min_children_per_line(w['maxPerLine'] if 'maxPerLine' in w else 8)
+                buttonsCnt.set_selection_mode(Gtk.SelectionMode.NONE)
+                widgetCnt.add(buttonsCnt)
+                for i, k in enumerate(w['launchers']):
+                    state['launcherButtons'][k] = getButton(k)
+                    state['launcherButtons'][k].connect("clicked", processForker(w['launchers'][k]) )
+                    buttonsCnt.insert(state['launcherButtons'][k], 1)
+
             case 'sh':
                 try:
                     cmd = w["cmd"].replace("$HOME", homeDir)
@@ -186,7 +203,7 @@ def render_container():
         # add if not previously initialized
         if initializing:
             print("Initializing widget #", si)
-            outerContainer.add(labelCnt)
+            outerContainer.add(widgetCnt)
     return True
 
 window.connect('destroy', Gtk.main_quit)
@@ -201,7 +218,7 @@ Gtk.main()
 #def on_button1_clicked(self):
 #        print("clicked")
 
-#button1 = Gtk.Button(label="Hello")
+#button1 = getButton("Hello")
 #button1.connect("clicked", on_button1_clicked)
 #outerContainer.pack_start(button1, True, True, 0)
 
