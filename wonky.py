@@ -1,6 +1,6 @@
 #!/usr/bin/env python3 
 
-import gi, json, time, subprocess as sp
+import gi, json, time, os, threading, subprocess as sp
 gi.require_version('Gtk', '3.0')
 gi.require_version('GtkLayerShell', '0.1')
 from gi.repository import Gtk, GtkLayerShell
@@ -45,9 +45,37 @@ GtkLayerShell.set_anchor(window, GtkLayerShell.Edge.BOTTOM, 1)
 outerContainer = Gtk.Box(spacing=6,orientation=Gtk.Orientation.VERTICAL)
 window.add(outerContainer)
 
+# long-running top process setup
+env = os.environ.copy()
+runtop = False
+for w in config['widgets']:
+    if w['type'] == 'top':
+        runtop = True
+        topcfg = w
+        env['LINES'] = str(w['lines'])
+        print(str(w['lines']))
+
 state = {
     "widgets": {},
+    "topOutput": ""
 }
+def capture_top():
+    cmd = ["top","-b", "-d", str(topcfg['interval']), "-w"]
+
+    with sp.Popen(cmd, stdout=sp.PIPE, bufsize=1, universal_newlines=True, env=env) as p:
+        for line in p.stdout:
+            if line.startswith('top '):
+              state['topOutput'] = ''
+            state['topOutput'] += line
+
+    if p.returncode != 0:
+        print("Top errored out!")
+        #raise sp.CalledProcessError(p.returncode, p.args)
+
+if runtop:
+    thr = threading.Thread(target=capture_top)
+    thr.start()
+
 
 def render_container():
     #print("Loop...")
@@ -66,7 +94,7 @@ def render_container():
             ref = state["widgets"][si] 
             label = state["widgets"][si]['widget']
             timeDiff = currentTime - ref["lastRun"]
-            if "interval" in w and "lastRun" in ref and timeDiff < w["interval"]:
+            if w['type'] != 'top' and "interval" in w and "lastRun" in ref and timeDiff < w["interval"]:
                 #print("skipping", currentTime, timeDiff, w)
                 continue
         else:
@@ -99,6 +127,11 @@ def render_container():
 
             case 'text':
                 labelText = w['text']
+                label.set_markup(labelText)
+
+            case 'top':
+                labelText = GLib.markup_escape_text(str(state['topOutput']))
+                labelText = w['fmt'].replace('$OUTPUT', labelText)
                 label.set_markup(labelText)
 
             case 'sh':
