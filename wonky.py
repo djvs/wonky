@@ -29,19 +29,27 @@ window = Gtk.Window()
 
 GtkLayerShell.init_for_window(window)
 
+# lens-style utility fn
+def lookup(d, list_of_keys, default):
+    for k in list_of_keys:
+        if k not in d: 
+            return default
+        d=d[k]
+    return d
+
 if "exclusive" in config:
     GtkLayerShell.auto_exclusive_zone_enable(window) # Optional 
 
 GtkLayerShell.set_layer(window, 1)
 
-GtkLayerShell.set_margin(window, GtkLayerShell.Edge.TOP, config['window']['margin']['top'] or 5)
-GtkLayerShell.set_margin(window, GtkLayerShell.Edge.RIGHT, config['window']['margin']['right'] or 1000)
-GtkLayerShell.set_margin(window, GtkLayerShell.Edge.BOTTOM, config['window']['margin']['bottom'] or 5)
-GtkLayerShell.set_margin(window, GtkLayerShell.Edge.LEFT, config['window']['margin']['left'] or 5)
-if config['window']['anchor']['top']: GtkLayerShell.set_anchor(window, GtkLayerShell.Edge.TOP, 1)
-if config['window']['anchor']['right']: GtkLayerShell.set_anchor(window, GtkLayerShell.Edge.RIGHT, 1)
-if config['window']['anchor']['bottom']: GtkLayerShell.set_anchor(window, GtkLayerShell.Edge.BOTTOM, 1)
-if config['window']['anchor']['left']: GtkLayerShell.set_anchor(window, GtkLayerShell.Edge.LEFT, 1)
+GtkLayerShell.set_margin(window, GtkLayerShell.Edge.TOP, lookup(config, ['window','margin','top'], 5))
+GtkLayerShell.set_margin(window, GtkLayerShell.Edge.RIGHT, lookup(config, ['window','margin','right'], 1000))
+GtkLayerShell.set_margin(window, GtkLayerShell.Edge.BOTTOM, lookup(config, ['window','margin','bottom'], 5))
+GtkLayerShell.set_margin(window, GtkLayerShell.Edge.LEFT, lookup(config, ['window','margin','left'], 5))
+if lookup(config, ['window','anchor','top'], False): GtkLayerShell.set_anchor(window, GtkLayerShell.Edge.TOP, 1)
+if lookup(config, ['window','anchor','right'], False): GtkLayerShell.set_anchor(window, GtkLayerShell.Edge.RIGHT, 1)
+if lookup(config, ['window','anchor','bottom'], False): GtkLayerShell.set_anchor(window, GtkLayerShell.Edge.BOTTOM, 1)
+if lookup(config, ['window','anchor','left'], False): GtkLayerShell.set_anchor(window, GtkLayerShell.Edge.LEFT, 1)
 
 outerContainer = Gtk.Box(spacing=6,orientation=Gtk.Orientation.VERTICAL)
 window.add(outerContainer)
@@ -178,8 +186,8 @@ def render_container():
 
             case 'launchers':
                 buttonsCnt = Gtk.FlowBox()
-                buttonsCnt.set_min_children_per_line(w['minPerLine'] if 'minPerLine' in w else 6)
-                buttonsCnt.set_min_children_per_line(w['maxPerLine'] if 'maxPerLine' in w else 8)
+                buttonsCnt.set_min_children_per_line( lookup(w, ['minPerLine'], 6))
+                buttonsCnt.set_max_children_per_line( lookup(w, ['maxPerLine'], 8))
                 buttonsCnt.set_selection_mode(Gtk.SelectionMode.NONE)
                 widgetCnt.add(buttonsCnt)
                 for l in w['launchers']:
