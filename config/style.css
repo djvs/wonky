@@ -22,3 +22,7 @@ label.top{
   font-family:Inconsolata for Powerline;
 }
 
+button{
+  padding:0 1em;
+  background-color: red;
+}
