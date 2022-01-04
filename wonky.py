@@ -86,10 +86,11 @@ def capture_top():
     cmd = ['top','-b', '-d', str(topcfg['interval']), '-w']
 
     with sp.Popen(cmd, stdout=sp.PIPE, bufsize=1, universal_newlines=True, env=env) as p:
-        for line in p.stdout:
-            if line.startswith('top '):
-              state['topOutput'] = ''
-            state['topOutput'] += line
+        if p.stdout:
+            for line in p.stdout:
+                if line.startswith('top '):
+                  state['topOutput'] = ''
+                state['topOutput'] += line
 
     if p.returncode != 0:
         print('Top errored out!')
@@ -128,8 +129,8 @@ def initializeWidget(w, wid, currentTime):
         labelCtx.add_class(w['class'])
 
     state['widgets'][wid] = { 'widget': label }
-    ref = state['widgets'][wid]
-    ref['cnt'] = widgetCnt
+    widget = state['widgets'][wid]
+    widget['cnt'] = widgetCnt
 
     print('Initializing widget...')
 
@@ -153,23 +154,23 @@ def initializeWidget(w, wid, currentTime):
             state['launcherButtons'][k].connect('clicked', processForker(l['cmd']))
             buttonsCnt.insert(state['launcherButtons'][k], -1)
 
-    return [widgetCnt, ref, label, False]
+    return [widgetCnt, widget, label, False]
 
 def getWidget(w, wid, currentTime):
     doContinue = False
 
-    ref = state['widgets'][wid] 
-    widgetCnt = ref['cnt']
+    widget = state['widgets'][wid] 
+    widgetCnt = widget['cnt']
     label = state['widgets'][wid]['widget']
     # Don't bother trying to update text or spacer, requires restart to update
     if w['type'] in ['text','spacer','launchers']:
         doContinue = True
-    # skip widgets not due for update
-    if 'lastRun' in ref and 'interval' in w:
-        timeDiff = currentTime - ref['lastRun']
+    # skip widgets not due for update (except top which has its own schedule)
+    if 'lastRun' in widget and 'interval' in w and w['type'] != 'top':
+        timeDiff = currentTime - widget['lastRun']
         if timeDiff < w['interval']:
             doContinue = True
-    return [widgetCnt, ref, label, doContinue]
+    return [widgetCnt, widget, label, doContinue]
 
 
 def updateWidget(w, wid, label):
@@ -217,22 +218,24 @@ def render_container():
     for i, w in enumerate(config['widgets']):
         wid = w['id']
         currentTime = time.time()
+        initializing = False
         if wid in state['widgets']:
             # Lookup routine
-            initializing = False
-            widgetCnt, ref, label, doContinue = getWidget(w, wid, currentTime)
+            widgetCnt, widget, label, doContinue = getWidget(w, wid, currentTime)
             if doContinue: continue
         else:
             # Initialization routines
             initializing = True
-            widgetCnt, ref, label, doContinue = initializeWidget(w, wid, currentTime )
-            outerContainer.add(widgetCnt)
+            widgetCnt, widget, label, doContinue = initializeWidget(w, wid, currentTime )
             if doContinue: continue
 
-        ref['lastRun'] = currentTime
+        widget['lastRun'] = currentTime
 
         # Update routines
         updateWidget(w, wid, label)
+
+        if initializing:
+            outerContainer.add(widgetCnt)
 
     # Must return true for timeout_add to continue
     return True
