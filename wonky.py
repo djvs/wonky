@@ -1,5 +1,4 @@
 #!/usr/bin/env python3 
-
 import gi, json, time, os, threading, subprocess as sp
 gi.require_version('Gtk', '3.0')
 gi.require_version('GtkLayerShell', '0.1')
@@ -74,13 +73,6 @@ state = {
     'launcherButtons': {}
 }
 
-def pausetop(self):
-    if state['topPause']:
-        state['topPause'] = False
-        state['topPauseButton'].set_label('pause')
-    else:
-        state['topPause'] = True
-        state['topPauseButton'].set_label('unpause')
 
 def capture_top():
     cmd = ['top','-b', '-d', str(topcfg['interval']), '-w']
@@ -111,9 +103,23 @@ def processForker(cmd):
         sp.Popen(cmd)
     return signalHandler
 
-def initializeWidget(w, wid, currentTime):
+# closure generator for widget pause
+def genPauseWidget(wid):
+    def pauseWidget(self):
+        widget = state['widgets'][wid]
+        if widget['paused']:
+            widget['paused'] = False
+            widget['pauseButton'].set_label('pause')
+        else:
+            widget['paused'] = True
+            widget['pauseButton'].set_label('unpause')
+    return pauseWidget
+
+def initWidget(w, wid, currentTime):
     widgetCnt = Gtk.Box(spacing=0, orientation=Gtk.Orientation.HORIZONTAL)
     label = Gtk.Label()
+    boxCnt = Gtk.Box(spacing=0, orientation=Gtk.Orientation.VERTICAL)
+    widgetCnt.pack_end(boxCnt, False, False, 0)
     widgetCnt.add(label)
     label.set_valign(Gtk.Align.START)
     label.set_halign(Gtk.Align.START)
@@ -128,19 +134,22 @@ def initializeWidget(w, wid, currentTime):
         labelCtx = label.get_style_context()
         labelCtx.add_class(w['class'])
 
-    state['widgets'][wid] = { 'widget': label }
+    state['widgets'][wid] = {
+        'label': label,
+        'paused': False
+    }
     widget = state['widgets'][wid]
     widget['cnt'] = widgetCnt
 
     print('Initializing widget...')
 
+    if 'pausable' in w and w['pausable']:
+        widget['pauseButton'] = getButton('pause')
+        widget['pauseButton'].connect('clicked', genPauseWidget(wid))
+        boxCnt.pack_start(widget['pauseButton'], False, False, 0)
+
     if w['type'] == 'top':
-        # Make a fancy top pause button for top widgets
-        boxCnt = Gtk.Box(spacing=0, orientation=Gtk.Orientation.VERTICAL)
-        widgetCnt.pack_end(boxCnt, False, False, 0)
-        state['topPauseButton'] = getButton('pause')
-        state['topPauseButton'].connect('clicked', pausetop)
-        boxCnt.pack_start(state['topPauseButton'], False, False, 0)
+        pass
 
     if w['type'] == 'launchers':
         buttonsCnt = Gtk.FlowBox()
@@ -161,7 +170,7 @@ def getWidget(w, wid, currentTime):
 
     widget = state['widgets'][wid] 
     widgetCnt = widget['cnt']
-    label = state['widgets'][wid]['widget']
+    label = state['widgets'][wid]['label']
     # Don't bother trying to update text or spacer, requires restart to update
     if w['type'] in ['text','spacer','launchers']:
         doContinue = True
@@ -174,36 +183,39 @@ def getWidget(w, wid, currentTime):
 
 
 def updateWidget(w, wid, label):
-        match w['type']:
-            case 'spacer':
-                labelText = ' '
+    widget = state['widgets'][wid]
+    if widget['paused']:
+        return
+    match w['type']:
+        case 'spacer':
+            labelText = ' '
+            label.set_markup(labelText)
+
+        case 'text':
+            labelText = w['text']
+            label.set_markup(labelText)
+
+        case 'top':
+            if not state['topPause']:
+                labelText = GLib.markup_escape_text(str(state['topOutput']))
+                labelText = w['fmt'].replace('$OUTPUT', labelText)
                 label.set_markup(labelText)
 
-            case 'text':
-                labelText = w['text']
+        case 'launchers':
+            pass
+
+        case 'sh':
+            try:
+                cmd = w['cmd'].replace('$HOME', homeDir)
+                result = sp.Popen(cmd, shell=True, stdout=sp.PIPE).communicate()[0]
+                labelText = result.decode('utf-8').strip()
+                if 'escape' in w:
+                    labelText = GLib.markup_escape_text(labelText)
+                labelText = w['fmt'].replace('$OUTPUT', labelText)
                 label.set_markup(labelText)
-
-            case 'top':
-                if not state['topPause']:
-                    labelText = GLib.markup_escape_text(str(state['topOutput']))
-                    labelText = w['fmt'].replace('$OUTPUT', labelText)
-                    label.set_markup(labelText)
-
-            case 'launchers':
-                pass
-
-            case 'sh':
-                try:
-                    cmd = w['cmd'].replace('$HOME', homeDir)
-                    result = sp.Popen(cmd, shell=True, stdout=sp.PIPE).communicate()[0]
-                    labelText = result.decode('utf-8').strip()
-                    if 'escape' in w:
-                        labelText = GLib.markup_escape_text(labelText)
-                    labelText = w['fmt'].replace('$OUTPUT', labelText)
-                    label.set_markup(labelText)
-                except:
-                    labelText = 'Command #' + wid + ' failed: ' + str(w['cmd'])
-                    label.set_markup(labelText)
+            except:
+                labelText = 'Command #' + wid + ' failed: ' + str(w['cmd'])
+                label.set_markup(labelText)
 
 
 
@@ -226,7 +238,7 @@ def render_container():
         else:
             # Initialization routines
             initializing = True
-            widgetCnt, widget, label, doContinue = initializeWidget(w, wid, currentTime )
+            widgetCnt, widget, label, doContinue = initWidget(w, wid, currentTime )
             if doContinue: continue
 
         widget['lastRun'] = currentTime
@@ -246,14 +258,3 @@ render_container()
 GLib.timeout_add((config['interval'] or 2) * 1000, render_container)
 window.show_all()
 Gtk.main()
-
-#print(dir(label))
-
-#def on_button1_clicked(self):
-#        print('clicked')
-
-#button1 = getButton('Hello')
-#button1.connect('clicked', on_button1_clicked)
-#outerContainer.pack_start(button1, True, True, 0)
-
-# ^ TODO - launcher buttons 
