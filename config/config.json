@@ -65,7 +65,8 @@
       "type": "top",
       "lines": 35,
       "fmt": "<b>top</b>\n$OUTPUT",
-      "interval": 2
+      "interval": 2,
+      "pausable": true
     },
     {
       "id": "6",
@@ -83,7 +84,8 @@
       "fmt": "<b>fortune</b>\n$OUTPUT",
       "class": "fortune",
       "escape": true,
-      "interval": 20
+      "interval": 5,
+      "pausable": true
     }
     
   ]
