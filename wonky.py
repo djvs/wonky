@@ -9,12 +9,12 @@ from gi.repository import Gio
 from gi.repository import GLib
 from pathlib import Path
 
-print("Initializing...")
+print('Initializing...')
 
 homeDir = str(Path.home())
-configDir = homeDir + "/.config/wonky/"
-configJsonPath = str(configDir) + "config.json" 
-configCssPath = str(configDir) + "style.css"
+configDir = homeDir + '/.config/wonky/'
+configJsonPath = str(configDir) + 'config.json' 
+configCssPath = str(configDir) + 'style.css'
 
 config = json.load(open(configJsonPath))
 
@@ -23,7 +23,7 @@ css_provider.load_from_path(configCssPath)
 
 gtkCtx = Gtk.StyleContext()
 screen = Gdk.Screen.get_default()
-print("n monitors", screen.get_n_monitors())
+print('n monitors', screen.get_n_monitors())
 gtkCtx.add_provider_for_screen(screen, css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
 
 window = Gtk.Window()
@@ -38,7 +38,7 @@ def lookup(d, list_of_keys, default):
         d=d[k]
     return d
 
-if "exclusive" in config:
+if 'exclusive' in config:
     GtkLayerShell.auto_exclusive_zone_enable(window) # Optional 
 
 GtkLayerShell.set_layer(window, 1)
@@ -62,16 +62,16 @@ for w in config['widgets']:
     if w['type'] == 'top':
         runtop = True
         topcfg = w
-        if "lines" in w:
+        if 'lines' in w:
             env['LINES'] = str(w['lines'])
-        if "columns" in w:
+        if 'columns' in w:
             env['COLUMNS'] = str(w['columns'])
 
 state = {
-    "widgets": {},
-    "topOutput": "",
-    "topPause": False,
-    "launcherButtons": {}
+    'widgets': {},
+    'topOutput': '',
+    'topPause': False,
+    'launcherButtons': {}
 }
 
 def pausetop(self):
@@ -83,7 +83,7 @@ def pausetop(self):
         state['topPauseButton'].set_label('unpause')
 
 def capture_top():
-    cmd = ["top","-b", "-d", str(topcfg['interval']), "-w"]
+    cmd = ['top','-b', '-d', str(topcfg['interval']), '-w']
 
     with sp.Popen(cmd, stdout=sp.PIPE, bufsize=1, universal_newlines=True, env=env) as p:
         for line in p.stdout:
@@ -92,7 +92,7 @@ def capture_top():
             state['topOutput'] += line
 
     if p.returncode != 0:
-        print("Top errored out!")
+        print('Top errored out!')
         #raise sp.CalledProcessError(p.returncode, p.args)
 
 if runtop:
@@ -118,27 +118,27 @@ def initializeWidget(w, wid, currentTime):
     label.set_halign(Gtk.Align.START)
 
     # Assign max width if specified
-    if "maxWidthChars" in w:
+    if 'maxWidthChars' in w:
         label.set_line_wrap(True)
         label.set_max_width_chars(w['maxWidthChars'])
 
     # Assign a css class if specified
-    if "class" in w:
+    if 'class' in w:
         labelCtx = label.get_style_context()
         labelCtx.add_class(w['class'])
 
-    state["widgets"][wid] = { "widget": label }
-    ref = state["widgets"][wid]
+    state['widgets'][wid] = { 'widget': label }
+    ref = state['widgets'][wid]
     ref['cnt'] = widgetCnt
 
-    print("Initializing widget...")
+    print('Initializing widget...')
 
     if w['type'] == 'top':
         # Make a fancy top pause button for top widgets
         boxCnt = Gtk.Box(spacing=0, orientation=Gtk.Orientation.VERTICAL)
         widgetCnt.pack_end(boxCnt, False, False, 0)
-        state['topPauseButton'] = getButton("pause")
-        state['topPauseButton'].connect("clicked", pausetop)
+        state['topPauseButton'] = getButton('pause')
+        state['topPauseButton'].connect('clicked', pausetop)
         boxCnt.pack_start(state['topPauseButton'], False, False, 0)
 
     if w['type'] == 'launchers':
@@ -150,7 +150,7 @@ def initializeWidget(w, wid, currentTime):
         for l in w['launchers']:
             k = l['label']
             state['launcherButtons'][k] = getButton(k)
-            state['launcherButtons'][k].connect("clicked", processForker(l['cmd']))
+            state['launcherButtons'][k].connect('clicked', processForker(l['cmd']))
             buttonsCnt.insert(state['launcherButtons'][k], -1)
 
     return [widgetCnt, ref, label, False]
@@ -158,16 +158,16 @@ def initializeWidget(w, wid, currentTime):
 def getWidget(w, wid, currentTime):
     doContinue = False
 
-    ref = state["widgets"][wid] 
+    ref = state['widgets'][wid] 
     widgetCnt = ref['cnt']
-    label = state["widgets"][wid]['widget']
+    label = state['widgets'][wid]['widget']
     # Don't bother trying to update text or spacer, requires restart to update
     if w['type'] in ['text','spacer','launchers']:
         doContinue = True
     # skip widgets not due for update
     if 'lastRun' in ref and 'interval' in w:
-        timeDiff = currentTime - ref["lastRun"]
-        if timeDiff < w["interval"]:
+        timeDiff = currentTime - ref['lastRun']
+        if timeDiff < w['interval']:
             doContinue = True
     return [widgetCnt, ref, label, doContinue]
 
@@ -175,7 +175,7 @@ def getWidget(w, wid, currentTime):
 def updateWidget(w, wid, label):
         match w['type']:
             case 'spacer':
-                labelText = " "
+                labelText = ' '
                 label.set_markup(labelText)
 
             case 'text':
@@ -193,25 +193,25 @@ def updateWidget(w, wid, label):
 
             case 'sh':
                 try:
-                    cmd = w["cmd"].replace("$HOME", homeDir)
+                    cmd = w['cmd'].replace('$HOME', homeDir)
                     result = sp.Popen(cmd, shell=True, stdout=sp.PIPE).communicate()[0]
                     labelText = result.decode('utf-8').strip()
-                    if "escape" in w:
+                    if 'escape' in w:
                         labelText = GLib.markup_escape_text(labelText)
                     labelText = w['fmt'].replace('$OUTPUT', labelText)
                     label.set_markup(labelText)
                 except:
-                    labelText = "Command #" + wid + " failed: " + str(w['cmd'])
+                    labelText = 'Command #' + wid + ' failed: ' + str(w['cmd'])
                     label.set_markup(labelText)
 
 
 
 def render_container():
-    #print("Loop...")
+    #print('Loop...')
     try:
         config = json.load(open(configJsonPath))
     except:
-        print("config.json is malformed!")
+        print('config.json is malformed!')
         return True
 
     for i, w in enumerate(config['widgets']):
@@ -247,10 +247,10 @@ Gtk.main()
 #print(dir(label))
 
 #def on_button1_clicked(self):
-#        print("clicked")
+#        print('clicked')
 
-#button1 = getButton("Hello")
-#button1.connect("clicked", on_button1_clicked)
+#button1 = getButton('Hello')
+#button1.connect('clicked', on_button1_clicked)
 #outerContainer.pack_start(button1, True, True, 0)
 
 # ^ TODO - launcher buttons 
