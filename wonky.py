@@ -23,6 +23,7 @@ css_provider.load_from_path(configCssPath)
 
 gtkCtx = Gtk.StyleContext()
 screen = Gdk.Screen.get_default()
+print("n monitors", screen.get_n_monitors())
 gtkCtx.add_provider_for_screen(screen, css_provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
 
 window = Gtk.Window()
@@ -109,66 +110,69 @@ def processForker(cmd):
         sp.Popen(cmd)
     return signalHandler
 
-def render_container():
-    #print("Loop...")
-    try:
-        config = json.load(open(configJsonPath))
-    except:
-        print("config.json is malformed!")
-        return True
+def initializeWidget(w, wid, currentTime):
+    widgetCnt = Gtk.Box(spacing=0, orientation=Gtk.Orientation.HORIZONTAL)
+    label = Gtk.Label()
+    widgetCnt.add(label)
+    label.set_valign(Gtk.Align.START)
+    label.set_halign(Gtk.Align.START)
 
-    for i, w in enumerate(config['widgets']):
-        si = w['id']
-        currentTime = time.time()
-        if si in state['widgets']:
-            # Lookup routine
-            initializing = False
-            ref = state["widgets"][si] 
-            label = state["widgets"][si]['widget']
-            # Don't bother trying to update text or spacer, requires restart to update
-            if w['type'] in ['text','spacer','launchers']:
-                continue
-            # skip widgets not due for update
-            if 'lastRun' in ref and 'interval' in w:
-                timeDiff = currentTime - ref["lastRun"]
-                if timeDiff < w["interval"]:
-                    continue
-        else:
-            # Initialization routine
-            initializing = True
-            widgetCnt = Gtk.Box(spacing=0, orientation=Gtk.Orientation.HORIZONTAL)
-            label = Gtk.Label()
-            widgetCnt.add(label)
-            label.set_valign(Gtk.Align.START)
-            label.set_halign(Gtk.Align.START)
+    # Assign max width if specified
+    if "maxWidthChars" in w:
+        label.set_line_wrap(True)
+        label.set_max_width_chars(w['maxWidthChars'])
 
-            # Assign max width if specified
-            if "maxWidthChars" in w:
-                label.set_line_wrap(True)
-                label.set_max_width_chars(w['maxWidthChars'])
+    # Assign a css class if specified
+    if "class" in w:
+        labelCtx = label.get_style_context()
+        labelCtx.add_class(w['class'])
 
-            # Assign a css class if specified
-            if "class" in w:
-                labelCtx = label.get_style_context()
-                labelCtx.add_class(w['class'])
+    state["widgets"][wid] = { "widget": label }
+    ref = state["widgets"][wid]
+    ref['cnt'] = widgetCnt
 
-            state["widgets"][si] = { "widget": label }
-            ref = state["widgets"][si]
-            ref['cnt'] = widgetCnt
+    print("Initializing widget...")
 
-            if w['type'] == 'top':
-                # Make a fancy top pause button for top widgets
-                boxCnt = Gtk.Box(spacing=0, orientation=Gtk.Orientation.VERTICAL)
-                widgetCnt.pack_end(boxCnt, False, False, 0)
-                state['topPauseButton'] = getButton("pause")
-                state['topPauseButton'].connect("clicked", pausetop)
-                boxCnt.pack_start(state['topPauseButton'], False, False, 0)
+    if w['type'] == 'top':
+        # Make a fancy top pause button for top widgets
+        boxCnt = Gtk.Box(spacing=0, orientation=Gtk.Orientation.VERTICAL)
+        widgetCnt.pack_end(boxCnt, False, False, 0)
+        state['topPauseButton'] = getButton("pause")
+        state['topPauseButton'].connect("clicked", pausetop)
+        boxCnt.pack_start(state['topPauseButton'], False, False, 0)
 
-            print("Initializing widget...")
+    if w['type'] == 'launchers':
+        buttonsCnt = Gtk.FlowBox()
+        buttonsCnt.set_min_children_per_line( lookup(w, ['minPerLine'], 6))
+        buttonsCnt.set_max_children_per_line( lookup(w, ['maxPerLine'], 8))
+        buttonsCnt.set_selection_mode(Gtk.SelectionMode.NONE)
+        widgetCnt.add(buttonsCnt)
+        for l in w['launchers']:
+            k = l['label']
+            state['launcherButtons'][k] = getButton(k)
+            state['launcherButtons'][k].connect("clicked", processForker(l['cmd']))
+            buttonsCnt.insert(state['launcherButtons'][k], -1)
 
-        ref['lastRun'] = currentTime
+    return [widgetCnt, ref, label, False]
 
-        # assign text
+def getWidget(w, wid, currentTime):
+    doContinue = False
+
+    ref = state["widgets"][wid] 
+    widgetCnt = ref['cnt']
+    label = state["widgets"][wid]['widget']
+    # Don't bother trying to update text or spacer, requires restart to update
+    if w['type'] in ['text','spacer','launchers']:
+        doContinue = True
+    # skip widgets not due for update
+    if 'lastRun' in ref and 'interval' in w:
+        timeDiff = currentTime - ref["lastRun"]
+        if timeDiff < w["interval"]:
+            doContinue = True
+    return [widgetCnt, ref, label, doContinue]
+
+
+def updateWidget(w, wid, label):
         match w['type']:
             case 'spacer':
                 labelText = " "
@@ -185,16 +189,7 @@ def render_container():
                     label.set_markup(labelText)
 
             case 'launchers':
-                buttonsCnt = Gtk.FlowBox()
-                buttonsCnt.set_min_children_per_line( lookup(w, ['minPerLine'], 6))
-                buttonsCnt.set_max_children_per_line( lookup(w, ['maxPerLine'], 8))
-                buttonsCnt.set_selection_mode(Gtk.SelectionMode.NONE)
-                widgetCnt.add(buttonsCnt)
-                for l in w['launchers']:
-                    k = l['label']
-                    state['launcherButtons'][k] = getButton(k)
-                    state['launcherButtons'][k].connect("clicked", processForker(l['cmd']))
-                    buttonsCnt.insert(state['launcherButtons'][k], 1)
+                pass
 
             case 'sh':
                 try:
@@ -206,13 +201,40 @@ def render_container():
                     labelText = w['fmt'].replace('$OUTPUT', labelText)
                     label.set_markup(labelText)
                 except:
-                    labelText = "Command #" + si + " failed: " + str(w['cmd'])
+                    labelText = "Command #" + wid + " failed: " + str(w['cmd'])
                     label.set_markup(labelText)
 
-        # add if not previously initialized
-        if initializing:
-            print("Initializing widget #", si)
+
+
+def render_container():
+    #print("Loop...")
+    try:
+        config = json.load(open(configJsonPath))
+    except:
+        print("config.json is malformed!")
+        return True
+
+    for i, w in enumerate(config['widgets']):
+        wid = w['id']
+        currentTime = time.time()
+        if wid in state['widgets']:
+            # Lookup routine
+            initializing = False
+            widgetCnt, ref, label, doContinue = getWidget(w, wid, currentTime)
+            if doContinue: continue
+        else:
+            # Initialization routines
+            initializing = True
+            widgetCnt, ref, label, doContinue = initializeWidget(w, wid, currentTime )
             outerContainer.add(widgetCnt)
+            if doContinue: continue
+
+        ref['lastRun'] = currentTime
+
+        # Update routines
+        updateWidget(w, wid, label)
+
+    # Must return true for timeout_add to continue
     return True
 
 window.connect('destroy', Gtk.main_quit)
